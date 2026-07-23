@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Healthy Food Sorting 3D - Combined Edition</title>
+    
+    <!-- CSS Dependencies & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * { 
+            box-sizing: border-box; 
+            margin: 0; padding: 0;
+            user-select: none; 
+            -webkit-user-select: none; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html { 
+            width: 100vw; height: 100dvh; 
+            overflow: hidden; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: #090d16; color: #fff; 
+            touch-action: none; 
+        }
+
+        canvas { display: block; }
+
+        #canvas-container { 
+            width: 100vw; height: 100vh; 
+            position: absolute; top: 0; left: 0; 
+            z-index: 1; touch-action: none;
+        }
+
+        /* HTML/CSS NAMETAG SYSTEM */
+        .name-tag {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            padding: 2px 8px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1.5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 10;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+            transition: opacity 0.1s ease;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 12px rgba(34, 197, 94, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(34, 197, 94, 0.85); }
+        }
+        .pulse-green { animation: pulseGlow 2s infinite; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in { animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        .btn-menu {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            color: #f8fafc;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; cursor: pointer; touch-action: manipulation;
+        }
+        .btn-menu:hover {
+            border-color: #22c55e;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(34, 197, 94, 0.3);
+        }
+
+        #crosshair {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px; height: 16px;
+            pointer-events: none; z-index: 15; display: none;
+        }
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute; background-color: rgba(255, 255, 255, 0.85);
+        }
+        #crosshair::before { top: 50%; left: 0; width: 100%; height: 2px; transform: translateY(-50%); }
+        #crosshair::after { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
+
+        /* PAD KAWALAN TELEFON */
+        #mobile-controls {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            width: 100vw;
+            display: none;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 20px;
+            z-index: 25;
+            pointer-events: none;
+        }
+
+        .d-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 48px);
+            grid-template-rows: repeat(3, 48px);
+            gap: 4px;
+            pointer-events: auto;
+        }
+
+        .btn-dpad {
+            background-color: rgba(15, 23, 42, 0.85);
+            color: white;
+            border: 2px solid #22c55e;
+            border-radius: 10px;
+            font-size: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .btn-dpad:active, .btn-dpad.active {
+            background-color: #22c55e;
+            color: #000;
+            transform: scale(0.95);
+        }
+
+        #btn-up { grid-column: 2; grid-row: 1; }
+        #btn-left { grid-column: 1; grid-row: 2; }
+        #btn-right { grid-column: 3; grid-row: 2; }
+        #btn-down { grid-column: 2; grid-row: 3; }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 56px);
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .btn-action-mobile {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: #e63946;
+            border: 2px solid #ffffff;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .btn-action-alt {
+            background-color: #ffb703;
+            color: #000000;
+            border-color: #ffffff;
+        }
+
+        .btn-action-blue {
+            background-color: #38bdf8;
+            color: #000000;
+            border-color: #ffffff;
+        }
+
+        .btn-action-green {
+            background-color: #22c55e;
+            color: #ffffff;
+            border-color: #ffffff;
+        }
+
+        .btn-action-mobile:active {
+            transform: scale(0.92);
+            filter: brightness(1.2);
+        }
+
+        #minimap-canvas {
+            width: 85px; height: 85px; border-radius: 50%;
+            border: 2px solid #22c55e; background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 8px rgba(0,0,0,0.5);
+        }
+
+        .inventory-slot {
+            width: 44px; height: 44px; border-radius: 10px;
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            background: rgba(30, 41, 59, 0.7);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; position: relative; transition: all 0.2s ease;
+        }
+        .inventory-slot.has-item {
+            border-color: #22c55e; background: rgba(34, 197, 94, 0.15);
+        }
+    </style>
+
+    <!-- Three.js & GLTFLoader -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    <div id="nametag-container" class="absolute inset-0 pointer-events-none z-20"></div>
+    <div id="crosshair"></div>
+
+    <!-- MAIN MENU OVERLAY -->
+    <div id="main-menu" class="absolute inset-0 z-40 flex flex-col justify-between items-center p-6 glass-panel border-none rounded-none">
+        <nav class="w-full flex justify-between items-center max-w-5xl z-10">
+            <div class="text-lg font-black tracking-wider text-green-400">HEALTHY FOOD SORTING 3D</div>
+            <div class="text-xs text-slate-400 font-semibold">Bikini Bottom Edition</div>
+        </nav>
+
+        <div class="text-center my-auto animate-fade-in max-w-xl z-10">
+            <div class="inline-block px-3 py-1 rounded-full bg-green-500/10 border border-green-400/30 text-green-400 text-[11px] font-bold tracking-widest uppercase mb-3">
+                🥗 Edukasi Pemakanan Sihat bersama SpongeBob
+            </div>
+            <h1 class="text-3xl sm:text-5xl font-black text-white tracking-wider mb-3">
+                HEALTHY FOOD SORTING
+            </h1>
+            <p class="text-slate-300 text-xs sm:text-sm mb-6 font-medium leading-relaxed">
+                Terokai persekitaran 3D Bikini Bottom, kunjungi Krusty Krab & rumah watak, dapatkan tips pemakanan sihat, dan asingkan makanan dengan betul!
+            </p>
+
+            <div class="w-full max-w-xs mx-auto space-y-2.5">
+                <button id="btn-play" class="btn-menu w-full pulse-green text-sm" onclick="startGame(false)">
+                    <span>▶</span> <span>MULA PERMAINAN</span>
+                </button>
+                <button id="btn-tutorial-menu" class="btn-menu w-full text-cyan-400 border-cyan-500/50 text-sm" onclick="toggleModal('modal-tutorial')">
+                    <span>📖</span> <span>CARA BERMAIN</span>
+                </button>
+                <button id="btn-resume" class="btn-menu w-full text-emerald-400 border-emerald-500/50 hidden text-sm" onclick="startGame(true)">
+                    <span>⏯</span> <span>SAMBUNG PERMAINAN</span>
+                </button>
+                <button class="btn-menu w-full text-xs" onclick="toggleModal('modal-settings')">
+                    <span>⚙</span> <span>TETAPAN</span>
+                </button>
+            </div>
+        </div>
+
+        <footer class="text-[10px] text-slate-400 text-center z-10">
+            &copy; 2026 Healthy Food Sorting 3D • Bikini Bottom World
+        </footer>
+    </div>
+
+    <!-- IN-GAME HUD OVERLAY -->
+    <div id="game-hud" class="absolute inset-0 z-30 pointer-events-none hidden flex-col justify-between p-3 sm:p-4">
+        <div class="flex justify-between items-start gap-2">
+            <div class="glass-panel p-2.5 rounded-xl pointer-events-auto border-green-500/30 w-auto min-w-[160px] space-y-1 text-[11px] font-bold">
+                <div class="flex justify-between items-center text-amber-400 gap-3">
+                    <span>Markah:</span>
+                    <span id="hud-score" class="text-xs text-white font-extrabold">0</span>
+                </div>
+                <div class="flex justify-between items-center text-cyan-400 gap-3">
+                    <span>Masa:</span>
+                    <span id="hud-timer" class="text-xs text-white font-extrabold">00:00</span>
+                </div>
+                <div class="flex justify-between items-center text-emerald-400 gap-3">
+                    <span>Sihat:</span>
+                    <span id="hud-healthy-count" class="text-white">0/8</span>
+                </div>
+                <div class="flex justify-between items-center text-rose-400 gap-3">
+                    <span>X Sihat:</span>
+                    <span id="hud-unhealthy-count" class="text-white">0/8</span>
+                </div>
+                <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-700/60 flex justify-between gap-3">
+                    <span>Baki:</span>
+                    <span id="hud-remaining-count" class="text-white font-black">16</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 pointer-events-auto">
+                <canvas id="minimap-canvas" width="85" height="85"></canvas>
+                <div class="flex flex-col gap-1.5">
+                    <button class="glass-panel p-2 rounded-lg text-[10px] font-bold hover:bg-slate-800" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+                    <button class="glass-panel p-2 rounded-lg text-[10px] font-bold hover:bg-slate-800 text-cyan-400" onclick="toggleModal('modal-tutorial')" title="Tutorial">📖</button>
+                    <button class="glass-panel p-2 rounded-lg text-[10px] font-bold hover:bg-slate-800" onclick="toggleModal('modal-settings')" title="Setting">⚙</button>
+                    <button class="glass-panel p-2 rounded-lg text-[10px] font-bold hover:bg-slate-800 text-amber-400" onclick="pauseGame()" title="Pause">⏸</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="interaction-prompt" class="self-center glass-panel px-4 py-2 rounded-full border border-green-400 text-green-300 font-extrabold text-xs tracking-wide hidden mb-6 pointer-events-none text-center shadow-lg">
+            Tekan [E] atau Sentuh untuk Interaksi
+        </div>
+
+        <div class="self-center glass-panel px-4 py-2 rounded-2xl border-white/20 text-center pointer-events-auto mb-1">
+            <div class="text-[9px] uppercase font-black text-slate-400 tracking-wider mb-1.5 flex justify-between items-center gap-4">
+                <span>INVENTORI (MAX 3)</span>
+                <span id="inventory-count-badge" class="text-green-400">0/3</span>
+            </div>
+            <div id="inventory-slots-container" class="flex gap-2">
+                <div class="inventory-slot" id="slot-0"><span class="text-[9px] text-slate-500 absolute top-0.5 left-1 font-bold">1</span><span class="slot-icon"></span></div>
+                <div class="inventory-slot" id="slot-1"><span class="text-[9px] text-slate-500 absolute top-0.5 left-1 font-bold">2</span><span class="slot-icon"></span></div>
+                <div class="inventory-slot" id="slot-2"><span class="text-[9px] text-slate-500 absolute top-0.5 left-1 font-bold">3</span><span class="slot-icon"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NPC DIALOG MODAL -->
+    <div id="modal-npc-dialog" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-6 border-amber-400/50 relative animate-fade-in space-y-4">
+            <div class="flex items-center gap-3 border-b border-slate-700 pb-3">
+                <div id="npc-avatar" class="text-4xl">🧽</div>
+                <div>
+                    <h3 id="npc-title" class="text-lg font-black text-amber-400">SpongeBob SquarePants</h3>
+                    <p class="text-[10px] text-slate-400">Tip Pemakanan Seimbang & Info Kesihatan</p>
+                </div>
+            </div>
+
+            <p id="npc-message" class="text-xs text-slate-200 leading-relaxed font-medium bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                ...
+            </p>
+
+            <button onclick="closeNpcDialog()" class="btn-menu w-full text-xs font-bold text-amber-300 border-amber-500/50">
+                Terima Kasih atas Maklumat! 👍
+            </button>
+        </div>
+    </div>
+
+    <!-- TUTORIAL MODAL -->
+    <div id="modal-tutorial" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-6 border-cyan-500/40 relative animate-fade-in space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-700">
+                <h3 class="text-base font-black text-cyan-400 flex items-center gap-2">📖 Tutorial & Panduan Permainan</h3>
+                <button onclick="toggleModal('modal-tutorial')" class="text-slate-400 hover:text-white font-bold text-sm">✕</button>
+            </div>
+
+            <div class="space-y-3 text-xs text-slate-200">
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-amber-400 mb-1 flex items-center gap-1.5">🎯 Misi Permainan</h4>
+                    <p class="leading-relaxed text-slate-300">
+                        Cari & kumpul **16 jenis makanan** yang bertaburan (8 Sihat & 8 Tidak Sihat). Berjumpa dengan SpongeBob & Squidward untuk dapatkan panduan info kesihatan!
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="p-2.5 bg-green-950/30 border border-green-500/30 rounded-xl text-center">
+                        <div class="text-2xl mb-1">🔥 OVEN</div>
+                        <div class="font-extrabold text-green-400 mb-1">Makanan Sihat</div>
+                        <p class="text-[10px] text-slate-400">Gandum, Daging, Nasi, Sushi, Lobak, Brokoli, Epal, Anggur.</p>
+                    </div>
+                    <div class="p-2.5 bg-rose-950/30 border border-rose-500/30 rounded-xl text-center">
+                        <div class="text-2xl mb-1">🗑️ TONG SAMPAH</div>
+                        <div class="font-extrabold text-rose-400 mb-1">Makanan Tidak Sihat</div>
+                        <p class="text-[10px] text-slate-400">Kentang Goreng, Pizza, Donut, Burger, Ais Krim, Kek, Gula-gula, Coklat.</p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-1.5">
+                    <h4 class="font-bold text-cyan-400">🎮 Kawalan Permainan:</h4>
+                    <ul class="list-disc list-inside space-y-1 text-slate-300 text-[11px]">
+                        <li><b class="text-white">W, A, S, D / D-Pad:</b> Bergerak</li>
+                        <li><b class="text-white">Tetikus / Sentuhan Skrin:</b> Pandang sekeliling</li>
+                        <li><b class="text-white">Tekan [E] / Button X / Interact:</b> Kutip makanan, cakap dengan NPC, atau asingkan makanan</li>
+                        <li><b class="text-white">Tekan [Q] / Button O / Drop:</b> Buang makanan dari inventori</li>
+                        <li><b class="text-white">SPACE / Button Jump:</b> Melompat</li>
+                    </ul>
+                </div>
+            </div>
+
+            <button onclick="toggleModal('modal-tutorial')" class="btn-menu w-full text-xs font-bold text-cyan-300 border-cyan-500/50">Faham & Tutup</button>
+        </div>
+    </div>
+
+    <!-- POPUP MESSAGES -->
+    <div id="modal-popup" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-xs rounded-2xl p-5 text-center animate-fade-in space-y-3">
+            <div id="popup-icon" class="text-4xl">❌</div>
+            <h3 id="popup-title" class="text-lg font-black text-rose-400">Oops!</h3>
+            <p id="popup-body" class="text-slate-200 text-xs font-medium leading-relaxed"></p>
+            <button onclick="closePopupModal()" class="btn-menu w-full text-xs mt-1">Faham</button>
+        </div>
+    </div>
+
+    <!-- GAME OVER MODAL -->
+    <div id="modal-gameover" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-2xl p-5 text-center animate-fade-in space-y-3 border-green-500/50">
+            <div class="text-amber-400 text-2xl">⭐⭐⭐⭐⭐</div>
+            <h2 class="text-xl font-black text-green-400">Tahniah!</h2>
+            <p class="text-[11px] text-slate-300">Anda telah berjaya mengasingkan kesemua makanan dengan betul!</p>
+
+            <div class="bg-slate-900/80 rounded-xl p-3 text-left space-y-1.5 text-xs font-bold">
+                <div class="flex justify-between"><span>Jumlah Markah:</span> <span id="res-score" class="text-amber-400">0</span></div>
+                <div class="flex justify-between"><span>Masa Diambil:</span> <span id="res-time" class="text-cyan-400">00:00</span></div>
+                <div class="flex justify-between"><span>Ketepatan (%):</span> <span id="res-accuracy" class="text-emerald-400">100%</span></div>
+                <div class="flex justify-between"><span>Kesalahan:</span> <span id="res-mistakes" class="text-rose-400">0</span></div>
+            </div>
+
+            <button onclick="restartGameComplete()" class="btn-menu w-full text-xs font-bold">🔄 Main Lagi</button>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="modal-settings" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-2xl p-5 border-slate-700 relative animate-fade-in space-y-3 max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-700">
+                <h3 class="text-sm font-bold text-green-400">⚙️ Tetapan Permainan</h3>
+                <button onclick="toggleModal('modal-settings')" class="text-slate-400 hover:text-white font-bold text-xs">✕</button>
+            </div>
+
+            <div class="space-y-2.5 text-xs font-bold text-slate-300">
+                <div class="flex justify-between items-center">
+                    <span>Background Music:</span>
+                    <input type="checkbox" id="set-bgm-toggle" onchange="saveSettings()" class="toggle accent-green-500 w-4 h-4">
+                </div>
+
+                <div>
+                    <label class="block mb-1 text-[11px]">Music Volume:</label>
+                    <input type="range" id="set-music-vol" min="0" max="1" step="0.05" onchange="saveSettings()" class="w-full accent-green-500 h-1">
+                </div>
+
+                <div>
+                    <label class="block mb-1 text-[11px]">SFX Volume:</label>
+                    <input type="range" id="set-sfx-vol" min="0" max="1" step="0.05" onchange="saveSettings()" class="w-full accent-green-500 h-1">
+                </div>
+
+                <div>
+                    <label class="block mb-1 text-[11px]">Mouse Sensitivity:</label>
+                    <input type="range" id="set-mouse-sens" min="0.2" max="3.0" step="0.1" onchange="saveSettings()" class="w-full accent-green-500 h-1">
+                </div>
+
+                <div>
+                    <label class="block mb-1 text-[11px]">Camera Sensitivity:</label>
+                    <input type="range" id="set-cam-sens" min="0.2" max="3.0" step="0.1" onchange="saveSettings()" class="w-full accent-green-500 h-1">
+                </div>
+            </div>
+
+            <button onclick="toggleModal('modal-settings')" class="btn-menu w-full text-xs mt-1">Tutup & Simpan</button>
+        </div>
+    </div>
+
+    <!-- KAWALAN TELEFON D-PAD & BUTANG AKSI -->
+    <div id="mobile-controls">
+        <div class="d-pad">
+            <button class="btn-dpad" id="btn-up">▲</button>
+            <button class="btn-dpad" id="btn-left">◀</button>
+            <button class="btn-dpad" id="btn-right">▶</button>
+            <button class="btn-dpad" id="btn-down">▼</button>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn-action-mobile btn-action-blue" id="btn-jump"><span>JUMP</span><span class="text-[9px]">(🚀)</span></button>
+            <button class="btn-action-mobile btn-action-green" id="btn-sprint"><span>RUN</span><span class="text-[9px]">(🏃)</span></button>
+            <button class="btn-action-mobile btn-action-alt" id="btn-ability"><span>O</span><span class="text-[9px]">(DROP)</span></button>
+            <button class="btn-action-mobile" id="btn-action"><span>X</span><span class="text-[9px]">(INTERACT)</span></button>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================
+           1. DATA STRUCTURES & MODEL URLS
+           ========================================== */
+        const RAW_BASE_URL = "https://raw.githubusercontent.com/smassrgb/Game-Pemakanan-Seimbangg/main/";
+
+        const STATIONS_URLS = {
+            oven: RAW_BASE_URL + 'Oven%20by%20Quaternius%20-%20TEnCAyfLoh.glb',
+            trashcan: RAW_BASE_URL + 'Trashcan%20by%20Quaternius%20-%20XSwahu252t.glb',
+            lampPost: RAW_BASE_URL + 'Lamp%20post%20by%20Poly%20by%20Google%20-%20ez9fM9NvtRB.glb',
+            landingPad: RAW_BASE_URL + 'Landing%20Pad%20by%20Kay%20Lousberg%20-%20R5tsCpWwD2.glb',
+            spongebob: RAW_BASE_URL + 'the_spongebob_squarepants.glb',
+            squidward: RAW_BASE_URL + 'squidward_spongebob.glb',
+            spongebobHouse: RAW_BASE_URL + 'bfbbr-spongebob_pineapple_house.glb',
+            squidwardHouse: RAW_BASE_URL + 'squidwards_house_low_poly.glb',
+            patrickHouse: RAW_BASE_URL + 'sponge_bob_hero_pants_patricks_house.glb',
+            krustyKrab: RAW_BASE_URL + 'sbfbbr_-_krusty_krab.glb',
+            boatmobile: RAW_BASE_URL + 'spongebob_boatmobile__sketchfabweeklychallenge.glb',
+            busSpongebob: RAW_BASE_URL + 'bus_from_spongebob_squarepants.glb',
+            bgmAudio: RAW_BASE_URL + 'SpongeBob%20SquarePants%20Production%20Music%20-%20Horlepiep.mp3',
+            spongebobSound: RAW_BASE_URL + 'im-spongebob.mp3',
+            squidwardSound: RAW_BASE_URL + 'squidward-saying-no.mp3',
+            victorySound: RAW_BASE_URL + 'victory-mario-series-hq-super-smash-bros.mp3'
+        };
+
+        const FOOD_ITEMS = [
+            { id: 'roti', name: 'Roti', category: 'healthy', icon: '🍞', color: 0xd97706, modelUrl: RAW_BASE_URL + 'French%20Bread%20by%20Jarlan%20Perez%20-%20amZulae7WRc.glb', scale: 0.8 },
+            { id: 'steak', name: 'Steak', category: 'healthy', icon: '🥩', color: 0x9f1239, modelUrl: RAW_BASE_URL + 'Steak%20by%20Poly%20by%20Google%20-%2012kExfiW_ba.glb', scale: 0.8 },
+            { id: 'nasi', name: 'Nasi', category: 'healthy', icon: '🍚', color: 0xf8fafc, modelUrl: RAW_BASE_URL + 'Bowl%20of%20rice%20by%20Poly%20by%20Google%20-%20dcnV-eqevIB.glb', scale: 0.8 },
+            { id: 'sushi', name: 'Sushi', category: 'healthy', icon: '🍣', color: 0xef4444, modelUrl: RAW_BASE_URL + 'Sushi%20Nigiri%20by%20Quaternius%20-%20ea93ie9bKj.glb', scale: 0.8, yOffset: 0.35 },
+            { id: 'carrot', name: 'Carrot', category: 'healthy', icon: '🥕', color: 0xf97316, modelUrl: RAW_BASE_URL + 'Carrot%20by%20Poly%20by%20Google%20-%203oFkNid6ofx.glb', scale: 0.8 },
+            { id: 'broccoli', name: 'Broccoli', category: 'healthy', icon: '🥦', color: 0x22c55e, modelUrl: RAW_BASE_URL + 'Broccoli%20by%20jeremy%20-%20e2Z3XDxtT41.glb', scale: 0.8 },
+            { id: 'apple', name: 'Apple', category: 'healthy', icon: '🍎', color: 0xdc2626, modelUrl: RAW_BASE_URL + 'Apple%20by%20jeremy%20-%204tOmpD9-xsV.glb', scale: 0.8 },
+            { id: 'grapes', name: 'Grapes', category: 'healthy', icon: '🍇', color: 0xa855f7, modelUrl: RAW_BASE_URL + 'Grapes%20by%20jeremy%20-%20csU4Smr2_aV.glb', scale: 0.8 },
+            
+            { id: 'fries', name: 'Fries', category: 'unhealthy', icon: '🍟', color: 0xeab308, modelUrl: RAW_BASE_URL + 'French%20fries%20by%20Poly%20by%20Google%20-%204hpYt9IW-1k.glb', scale: 0.8 },
+            { id: 'pizza', name: 'Pizza', category: 'unhealthy', icon: '🍕', color: 0xf97316, modelUrl: RAW_BASE_URL + 'Pizza%20Slice%20by%20Quaternius%20-%20CA4HtaaMJn.glb', scale: 0.8 },
+            { id: 'donut', name: 'Donut', category: 'unhealthy', icon: '🍩', color: 0xec4899, modelUrl: RAW_BASE_URL + 'Donut%20by%20Quaternius%20-%20UQRRrsP3wj.glb', scale: 0.8 },
+            { id: 'burger', name: 'Burger', category: 'unhealthy', icon: '🍔', color: 0x854d0e, modelUrl: RAW_BASE_URL + 'Cheeseburger%20by%20Poly%20by%20Google%20-%20eke7qcu_FR2.glb', scale: 0.8 },
+            { id: 'icecream', name: 'Ice Cream', category: 'unhealthy', icon: '🍦', color: 0x38bdf8, modelUrl: RAW_BASE_URL + 'Ice%20Cream%20by%20Quaternius%20-%20iZiAPq7Sne.glb', scale: 0.8 },
+            { id: 'cake', name: 'Cake', category: 'unhealthy', icon: '🍰', color: 0xf472b6, modelUrl: RAW_BASE_URL + 'Cake%20by%20Kenney%20-%20KGFyP16ebH.glb', scale: 0.8 },
+            { id: 'candy', name: 'Candy', category: 'unhealthy', icon: '🍬', color: 0xef4444, modelUrl: RAW_BASE_URL + 'Candy%20cane%20by%20Poly%20by%20Google%20-%207DbOKA1uXfK.glb', scale: 0.8 },
+            { id: 'chocolate', name: 'Chocolate', category: 'unhealthy', icon: '🍫', color: 0x78350f, modelUrl: RAW_BASE_URL + 'Chocolate%20Bar%20by%20Quaternius%20-%20vJsJ1EIiOO.glb', scale: 0.8 }
+        ];
+
+        const SPONGEBOB_TIPS = [
+            "Hai kawan! Tahukah anda bahawa sayur-sayuran hijau seperti Brokoli kaya dengan Vitamin C dan K untuk sistem imun yang kuat!",
+            "Ikan dan Sushi mengandungi Omega-3 yang sangat bagus untuk kecerdasan otak anda!",
+            "Buah Epal dan Anggur mengandungi serat semula jadi yang membantu penghadaman tubuh!",
+            "Jangan makan Burger dan Kentang Goreng terlalu kerap, ia mengandungi lemak tepu yang tinggi!"
+        ];
+
+        const SQUIDWARD_TIPS = [
+            "Hmm... Kalau nak tahu, makanan terlalu manis seperti Donut, Coklat dan Ais Krim boleh merosakkan gigi dan menyebabkan masalah kesihatan.",
+            "Pastikan anda memilih Karbohidrat kompleks seperti Gandum dan Nasi untuk tenaga yang berpanjangan.",
+            "Protein daripada Steak dan Daging penting untuk pembentukan otot tubuh yang kuat."
+        ];
+
+        let gameSettings = { bgmOn: true, musicVol: 0.5, sfxVol: 0.8, mouseSens: 1.0, camSens: 1.0 };
+
+        let gameState = {
+            score: 0, timeElapsed: 0, healthyCollected: 0, unhealthyCollected: 0,
+            mistakes: 0, totalAttempts: 0, inventory: [], foodObjects: [],
+            isPaused: false, isPlaying: false
+        };
+
+        let activeNameTags = [];
+
+        let timerInterval = null;
+        let scene, camera, renderer, gltfLoader;
+        let ovenMesh, trashMesh;
+        let spongebobMesh, squidwardMesh;
+        let bgmAudioElement = null;
+        let spongebobAudio = null, squidwardAudio = null, victoryAudio = null;
+        let yaw = 0, pitch = 0;
+        let cameraPointerId = null;
+        let isMobile = false;
+
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let isSprinting = false;
+        let velocityY = 0;
+        let isGrounded = true;
+        const GRAVITY = -22.0;
+        const JUMP_STRENGTH = 8.5;
+        let prevTime = performance.now();
+
+        const ROAD_Z = 21;
+
+        /* ==========================================
+           NAMETAG SYSTEM
+           ========================================== */
+        function createNameTag(parentMesh, text, heightOffset = 2.2, colorHex = '#ffffff') {
+            const container = document.getElementById('nametag-container');
+            const tagEl = document.createElement('div');
+            tagEl.className = 'name-tag';
+            tagEl.innerText = text;
+            tagEl.style.color = colorHex;
+            tagEl.style.borderColor = colorHex;
+            container.appendChild(tagEl);
+
+            const tagObj = {
+                mesh: parentMesh,
+                element: tagEl,
+                heightOffset: heightOffset
+            };
+
+            activeNameTags.push(tagObj);
+            return tagObj;
+        }
+
+        function updateNameTags() {
+            if (!camera) return;
+            
+            const tempV = new THREE.Vector3();
+            activeNameTags.forEach(tag => {
+                if (!tag.mesh || !tag.mesh.parent) {
+                    tag.element.style.display = 'none';
+                    return;
+                }
+
+                tag.mesh.getWorldPosition(tempV);
+                tempV.y += tag.heightOffset;
+
+                tempV.project(camera);
+
+                const isBehind = tempV.z > 1;
+                if (isBehind) {
+                    tag.element.style.display = 'none';
+                } else {
+                    const x = (tempV.x * .5 + .5) * window.innerWidth;
+                    const y = (tempV.y * -.5 + .5) * window.innerHeight;
+                    tag.element.style.display = 'block';
+                    tag.element.style.left = `${x}px`;
+                    tag.element.style.top = `${y}px`;
+                }
+            });
+        }
+
+        /* ==========================================
+           2. AUDIO SYNTHESIZER
+           ========================================== */
+        class SoundEngine {
+            constructor() { this.ctx = null; }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+                this.initBGM();
+                this.initCustomSFX();
+            }
+            initBGM() {
+                if (!bgmAudioElement) {
+                    bgmAudioElement = new Audio(STATIONS_URLS.bgmAudio);
+                    bgmAudioElement.loop = true;
+                }
+                this.updateAudioState();
+            }
+            initCustomSFX() {
+                if (!spongebobAudio) spongebobAudio = new Audio(STATIONS_URLS.spongebobSound);
+                if (!squidwardAudio) squidwardAudio = new Audio(STATIONS_URLS.squidwardSound);
+                if (!victoryAudio) victoryAudio = new Audio(STATIONS_URLS.victorySound);
+            }
+            updateAudioState() {
+                if (!bgmAudioElement) return;
+                bgmAudioElement.volume = gameSettings.musicVol;
+                if (gameSettings.bgmOn && gameState.isPlaying && !gameState.isPaused) {
+                    bgmAudioElement.play().catch(e => console.log("Autoplay:", e));
+                } else {
+                    bgmAudioElement.pause();
+                }
+            }
+            playSpongeBobVoice() {
+                if (spongebobAudio) {
+                    spongebobAudio.volume = gameSettings.sfxVol;
+                    spongebobAudio.currentTime = 0;
+                    spongebobAudio.play().catch(e => console.log(e));
+                }
+            }
+            playSquidwardVoice() {
+                if (squidwardAudio) {
+                    squidwardAudio.volume = gameSettings.sfxVol;
+                    squidwardAudio.currentTime = 0;
+                    squidwardAudio.play().catch(e => console.log(e));
+                }
+            }
+            playVictorySound() {
+                if (victoryAudio) {
+                    victoryAudio.volume = gameSettings.sfxVol;
+                    victoryAudio.currentTime = 0;
+                    victoryAudio.play().catch(e => console.log(e));
+                }
+            }
+            playPickup() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+                gain.gain.setValueAtTime(0.3 * gameSettings.sfxVol, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(now); osc.stop(now + 0.15);
+            }
+            playJump() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(450, now + 0.12);
+                gain.gain.setValueAtTime(0.2 * gameSettings.sfxVol, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(now); osc.stop(now + 0.12);
+            }
+            playSuccess() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                [523.25, 659.25, 783.99].forEach((f, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.frequency.setValueAtTime(f, now + (i * 0.08));
+                    gain.gain.setValueAtTime(0.2 * gameSettings.sfxVol, now + (i * 0.08));
+                    gain.gain.linearRampToValueAtTime(0.01, now + (i * 0.08) + 0.2);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(now + (i * 0.08)); osc.stop(now + (i * 0.08) + 0.2);
+                });
+            }
+            playError() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.25);
+                gain.gain.setValueAtTime(0.3 * gameSettings.sfxVol, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(now); osc.stop(now + 0.25);
+            }
+        }
+        const soundEngine = new SoundEngine();
+
+        /* ==========================================
+           3. THREE.JS SCENE BUILD
+           ========================================== */
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            
+            scene.background = new THREE.Color(0x0a2a4a); 
+            scene.fog = new THREE.FogExp2(0x001e3d, 0.02);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.7, 10);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.1;
+            container.appendChild(renderer.domElement);
+
+            gltfLoader = new THREE.GLTFLoader();
+
+            detectMobile();
+
+            const ambientLight = new THREE.AmbientLight(0xdbeaf2, 0.7);
+            scene.add(ambientLight);
+
+            const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.3);
+            keyLight.position.set(15, 35, 15);
+            keyLight.castShadow = true;
+            keyLight.shadow.mapSize.width = 2048;
+            keyLight.shadow.mapSize.height = 2048;
+            scene.add(keyLight);
+
+            const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.5);
+            fillLight.position.set(-15, 15, -15);
+            scene.add(fillLight);
+
+            buildEnvironment();
+            setupControls();
+            setupMouseAndTouchLook();
+            loadSettings();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function detectMobile() {
+            isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+            if (isMobile) {
+                document.getElementById('mobile-controls').style.display = 'flex';
+            }
+        }
+
+        function generateBrickTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(0, 0, 512, 512);
+
+            const rows = 16, cols = 8;
+            const brickWidth = 512 / cols;
+            const brickHeight = 512 / rows;
+            const mortar = 4;
+
+            for (let r = 0; r < rows; r++) {
+                const offset = (r % 2 === 0) ? 0 : brickWidth / 2;
+                for (let c = -1; c <= cols; c++) {
+                    const x = c * brickWidth + offset;
+                    const y = r * brickHeight;
+                    
+                    const hue = 15 + Math.random() * 10;
+                    const sat = 40 + Math.random() * 20;
+                    const light = 28 + Math.random() * 15;
+                    ctx.fillStyle = `hsl(${hue}, ${sat}%, ${light}%)`;
+                    ctx.fillRect(x + mortar/2, y + mortar/2, brickWidth - mortar, brickHeight - mortar);
+                }
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(10, 10);
+            return texture;
+        }
+
+        function createFallbackStation(color, shape = 'box') {
+            const group = new THREE.Group();
+            let geo = shape === 'box' ? new THREE.BoxGeometry(2, 2.5, 2) : new THREE.CylinderGeometry(1.2, 1, 2.5, 16);
+            const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color }));
+            mesh.position.y = 1.25;
+            mesh.castShadow = true;
+            group.add(mesh);
+            return group;
+        }
+
+        function alignModelToGround(model, targetX, targetYBase, targetZ, targetHeight = 2.2, customYOffset = 0) {
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const scale = targetHeight / Math.max(size.x, size.y, size.z);
+            model.scale.set(scale, scale, scale);
+
+            box.setFromObject(model);
+            model.position.set(targetX, targetYBase - box.min.y + customYOffset, targetZ);
+        }
+
+        function loadProp(url, targetX, targetYBase, targetZ, targetHeight, rotY = 0, parentGroup = null, customYOffset = 0) {
+            gltfLoader.load(url, (gltf) => {
+                const model = gltf.scene;
+                alignModelToGround(model, targetX, targetYBase, targetZ, targetHeight, customYOffset);
+                model.rotation.y = rotY;
+                model.traverse(c => { if(c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+                if (parentGroup) parentGroup.add(model);
+                else scene.add(model);
+            }, undefined, (err) => console.warn(`Gagal muat model: ${url}`, err));
+        }
+
+        function buildEnvironment() {
+            const brickTexture = generateBrickTexture();
+            const floorGeo = new THREE.PlaneGeometry(50, 50);
+            floorGeo.rotateX(-Math.PI / 2);
+
+            const floorMat = new THREE.MeshStandardMaterial({
+                map: brickTexture,
+                bumpMap: brickTexture,
+                bumpScale: 0.12,
+                roughness: 0.6,
+                metalness: 0.15
+            });
+
+            const brickFloor = new THREE.Mesh(floorGeo, floorMat);
+            brickFloor.receiveShadow = true;
+            scene.add(brickFloor);
+
+            /* JALAN RAYA */
+            const roadGeometry = new THREE.PlaneGeometry(46, 7);
+            const roadMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x1e293b, 
+                roughness: 0.8 
+            });
+            const road = new THREE.Mesh(roadGeometry, roadMaterial);
+            road.rotation.x = -Math.PI / 2;
+            road.position.set(0, 0.02, ROAD_Z);
+            road.receiveShadow = true;
+            scene.add(road);
+
+            const lineGeometry = new THREE.PlaneGeometry(1.8, 0.35);
+            const lineMaterial = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+            for (let x = -20; x <= 20; x += 5) {
+                const dashLine = new THREE.Mesh(lineGeometry, lineMaterial);
+                dashLine.rotation.x = -Math.PI / 2;
+                dashLine.position.set(x, 0.03, ROAD_Z);
+                scene.add(dashLine);
+            }
+
+            /* TEMBOK SEMPADAN LENGKAP */
+            const borderMaterial = new THREE.MeshStandardMaterial({ color: 0x4a3b32, roughness: 0.9 });
+            const wallHeight = 2.0;
+            const wallThickness = 0.8;
+            const platformSize = 50;
+
+            function createBorderWall(width, depth, x, z) {
+                const wallGeo = new THREE.BoxGeometry(width, wallHeight, depth);
+                const wall = new THREE.Mesh(wallGeo, borderMaterial);
+                wall.position.set(x, wallHeight / 2, z);
+                wall.castShadow = true;
+                wall.receiveShadow = true;
+                scene.add(wall);
+            }
+
+            createBorderWall(platformSize, wallThickness, 0, -platformSize / 2);
+            createBorderWall(platformSize, wallThickness, 0, platformSize / 2);
+            createBorderWall(wallThickness, platformSize, -platformSize / 2, 0);
+            createBorderWall(wallThickness, platformSize, platformSize / 2, 0);
+
+            const borderGroup = new THREE.Group();
+            const borderDist = 24;
+            for (let i = -borderDist; i <= borderDist; i += 6) {
+                const createPylon = (x, z) => {
+                    const pylonGeo = new THREE.CylinderGeometry(0.2, 0.35, 2.5, 8);
+                    const pylonMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.2 });
+                    const pylon = new THREE.Mesh(pylonGeo, pylonMat);
+                    pylon.position.set(x, 1.25, z);
+                    pylon.castShadow = true;
+
+                    const ringGeo = new THREE.TorusGeometry(0.3, 0.05, 8, 16);
+                    const ringMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+                    const ring = new THREE.Mesh(ringGeo, ringMat);
+                    ring.rotation.x = Math.PI / 2;
+                    ring.position.y = 1.0;
+                    pylon.add(ring);
+                    borderGroup.add(pylon);
+                };
+                createPylon(i, -borderDist);
+                createPylon(i, borderDist);
+                createPylon(-borderDist, i);
+                createPylon(borderDist, i);
+            }
+            scene.add(borderGroup);
+
+            // LAMP POSTS
+            const lampPostPositions = [
+                { x: -14, z: -14, rot: 0 },
+                { x: 14, z: -14, rot: Math.PI / 2 },
+                { x: -14, z: 14, rot: Math.PI },
+                { x: 14, z: 14, rot: -Math.PI / 2 }
+            ];
+            lampPostPositions.forEach(pos => {
+                loadProp(STATIONS_URLS.lampPost, pos.x, 0, pos.z, 3.2, pos.rot);
+            });
+
+            /* OVEN & TONG SAMPAH STATIONS DENGAN TAG NAMA MISI PLAYER */
+            const OVEN_POS = { x: -8, z: -6 };
+            const TRASH_POS = { x: 8, z: -6 };
+
+            loadProp(STATIONS_URLS.landingPad, OVEN_POS.x, 0, OVEN_POS.z, 2.4, 0);
+            ovenMesh = createFallbackStation(0x475569, 'box');
+            ovenMesh.position.set(OVEN_POS.x, 0, OVEN_POS.z);
+            scene.add(ovenMesh);
+
+            gltfLoader.load(STATIONS_URLS.oven, (gltf) => {
+                scene.remove(ovenMesh);
+                ovenMesh = gltf.scene;
+                alignModelToGround(ovenMesh, OVEN_POS.x, 0.0, OVEN_POS.z, 2.8);
+                ovenMesh.traverse(c => { if(c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+                scene.add(ovenMesh);
+                // Tag Misi Oven (Makanan Sihat)
+                createNameTag(ovenMesh, "🔥 Oven (Makanan Sihat)", 3.2, '#22c55e');
+            });
+
+            loadProp(STATIONS_URLS.landingPad, TRASH_POS.x, 0, TRASH_POS.z, 2.4, 0);
+            trashMesh = createFallbackStation(0xdc2626, 'cylinder');
+            trashMesh.position.set(TRASH_POS.x, 0, TRASH_POS.z);
+            scene.add(trashMesh);
+
+            gltfLoader.load(STATIONS_URLS.trashcan, (gltf) => {
+                scene.remove(trashMesh);
+                trashMesh = gltf.scene;
+                alignModelToGround(trashMesh, TRASH_POS.x, 0.0, TRASH_POS.z, 2.8);
+                trashMesh.traverse(c => { if(c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+                scene.add(trashMesh);
+                // Tag Misi Tong Sampah (Makanan Tidak Sihat)
+                createNameTag(trashMesh, "🗑️ Tong Sampah (Makanan Tidak Sihat)", 3.2, '#ef4444');
+            });
+
+            /* RUMAH & KRUSTY KRAB */
+            loadProp(STATIONS_URLS.spongebobHouse, -11, 0, -14, 6.0, Math.PI / 6);
+            loadProp(STATIONS_URLS.squidwardHouse, -4, 0, -14, 5.5, 0);
+            loadProp(STATIONS_URLS.patrickHouse, 3, 0, -14, 4.8, 0);
+            loadProp(STATIONS_URLS.krustyKrab, 10, 0, -14, 5.0, 0);
+
+            /* BOATMOBILE & BAS */
+            loadProp(STATIONS_URLS.busSpongebob, -6, 0, ROAD_Z, 9.6, -Math.PI / 2);
+            loadProp(STATIONS_URLS.boatmobile, 6, 0, ROAD_Z, 5.0, -Math.PI / 2);
+
+            /* SPONGEBOB & SQUIDWARD DENGAN TAG NAMA TEPAT DI ATAS KEPALA (FIXED) */
+            const SPONGEBOB_POS = { x: -3.5, z: -6 };
+            const SQUIDWARD_POS = { x: 3.5, z: -6 };
+
+            // 1. SpongeBob Group
+            spongebobMesh = new THREE.Group();
+            spongebobMesh.position.set(SPONGEBOB_POS.x, 0, SPONGEBOB_POS.z);
+            scene.add(spongebobMesh);
+
+            gltfLoader.load(STATIONS_URLS.spongebob, (gltf) => {
+                const model = gltf.scene;
+                alignModelToGround(model, 0, 0, 0, 2.4);
+                model.rotation.y = 0;
+                model.traverse(c => { if(c.isMesh) { c.castShadow = true; } });
+                spongebobMesh.add(model);
+                // Tag Nama SpongeBob dibuat pada kumpulan tersendiri
+                createNameTag(spongebobMesh, "SpongeBob", 2.6, '#facc15');
+            });
+
+            // 2. Squidward Group
+            squidwardMesh = new THREE.Group();
+            squidwardMesh.position.set(SQUIDWARD_POS.x, 0, SQUIDWARD_POS.z);
+            scene.add(squidwardMesh);
+
+            gltfLoader.load(STATIONS_URLS.squidward, (gltf) => {
+                const model = gltf.scene;
+                alignModelToGround(model, 0, 0, 0, 2.4);
+                model.rotation.y = 0;
+                model.traverse(c => { if(c.isMesh) { c.castShadow = true; } });
+                squidwardMesh.add(model);
+                // Tag Nama Squidward dibuat pada kumpulan tersendiri
+                createNameTag(squidwardMesh, "Squidward", 2.8, '#38bdf8');
+            });
+
+            spawnFoodItems();
+        }
+
+        function spawnFoodItems() {
+            gameState.foodObjects.forEach(f => scene.remove(f.mesh));
+            gameState.foodObjects = [];
+
+            const startX = -6;
+            const startZ = 2;
+            const spacing = 3.2;
+            const columns = 4;
+
+            const ovenPos = new THREE.Vector3(-8, 0, -6);
+            const trashPos = new THREE.Vector3(8, 0, -6);
+
+            let currentColumn = 0;
+            let currentRow = 0;
+
+            FOOD_ITEMS.forEach((item) => {
+                const group = new THREE.Group();
+
+                let validPosition = false;
+                let candidatePos = new THREE.Vector3();
+
+                while (!validPosition) {
+                    const posX = startX + (currentColumn * spacing);
+                    const posZ = startZ + (currentRow * spacing);
+                    candidatePos.set(posX, 0, posZ);
+
+                    const nearOven = candidatePos.distanceTo(ovenPos) < 3.5;
+                    const nearTrash = candidatePos.distanceTo(trashPos) < 3.5;
+
+                    if (!nearOven && !nearTrash) {
+                        validPosition = true;
+                    }
+
+                    currentColumn++;
+                    if (currentColumn >= columns) {
+                        currentColumn = 0;
+                        currentRow++;
+                    }
+                }
+
+                const arrowGeo = new THREE.ConeGeometry(0.15, 0.3, 3);
+                const arrowMat = new THREE.MeshBasicMaterial({ 
+                    color: item.category === 'healthy' ? 0x22c55e : 0xef4444 
+                });
+                const arrowMesh = new THREE.Mesh(arrowGeo, arrowMat);
+                arrowMesh.rotation.x = Math.PI; 
+                arrowMesh.position.y = 1.4; 
+                arrowMesh.name = "itemIndicator";
+                group.add(arrowMesh);
+
+                const placeholder = new THREE.Mesh(
+                    new THREE.DodecahedronGeometry(0.4),
+                    new THREE.MeshStandardMaterial({ color: item.color, roughness: 0.4 })
+                );
+                placeholder.position.y = 0.5;
+                group.add(placeholder);
+
+                const tagColorHex = item.category === 'healthy' ? '#4ade80' : '#f87171';
+                createNameTag(group, item.name, 1.2, tagColorHex);
+
+                gltfLoader.load(
+                    item.modelUrl,
+                    (gltf) => {
+                        group.remove(placeholder);
+                        const model = gltf.scene;
+
+                        const box = new THREE.Box3().setFromObject(model);
+                        const size = box.getSize(new THREE.Vector3());
+                        const maxDim = Math.max(size.x, size.y, size.z);
+                        const scaleFactor = (1.2 / maxDim) * (item.scale || 1.0);
+
+                        model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+                        box.setFromObject(model);
+                        const center = box.getCenter(new THREE.Vector3());
+                        model.position.sub(center);
+                        
+                        const extraY = item.yOffset || 0.0;
+                        model.position.y += (box.getSize(new THREE.Vector3()).y / 2) + 0.2 + extraY;
+
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                            }
+                        });
+
+                        group.add(model);
+                    },
+                    undefined,
+                    (error) => console.warn(`Gagal memuatkan model ${item.name}`, error)
+                );
+
+                group.position.copy(candidatePos);
+                scene.add(group);
+
+                gameState.foodObjects.push({ data: item, mesh: group, collected: false });
+            });
+        }
+
+        function dropInventoryItem() {
+            if (gameState.inventory.length === 0) return;
+
+            const droppedItemData = gameState.inventory.pop();
+            updateInventoryUI();
+
+            const obj = gameState.foodObjects.find(f => f.data.id === droppedItemData.id);
+            if (obj) {
+                obj.collected = false;
+                obj.mesh.position.set(camera.position.x, 0, camera.position.z);
+                scene.add(obj.mesh);
+            }
+            saveGameState();
+        }
+
+        /* ==========================================
+           INTERAKSI & POPUP
+           ========================================== */
+        function interactAction() {
+            const playerPos = new THREE.Vector3(camera.position.x, 0, camera.position.z);
+
+            const distSponge = playerPos.distanceTo(new THREE.Vector3(spongebobMesh.position.x, 0, spongebobMesh.position.z));
+            if (distSponge < 3.5) {
+                soundEngine.playSpongeBobVoice();
+                const randomTip = SPONGEBOB_TIPS[Math.floor(Math.random() * SPONGEBOB_TIPS.length)];
+                showNpcDialog("🧽", "SpongeBob SquarePants", randomTip);
+                return;
+            }
+
+            const distSquid = playerPos.distanceTo(new THREE.Vector3(squidwardMesh.position.x, 0, squidwardMesh.position.z));
+            if (distSquid < 3.5) {
+                soundEngine.playSquidwardVoice();
+                const randomTip = SQUIDWARD_TIPS[Math.floor(Math.random() * SQUIDWARD_TIPS.length)];
+                showNpcDialog("🦑", "Squidward Tentacles", randomTip);
+                return;
+            }
+
+            if (playerPos.distanceTo(new THREE.Vector3(ovenMesh.position.x, 0, ovenMesh.position.z)) < 4.5) {
+                processDeposit('healthy');
+                return;
+            }
+
+            if (playerPos.distanceTo(new THREE.Vector3(trashMesh.position.x, 0, trashMesh.position.z)) < 4.5) {
+                processDeposit('unhealthy');
+                return;
+            }
+
+            if (gameState.inventory.length >= 3) {
+                showPopupModal("🎒", "Inventori Penuh", "Inventori anda sudah penuh (Max 3 item)! Kosongkan dengan membuang atau memasukkannya ke station.");
+                return;
+            }
+
+            for (let obj of gameState.foodObjects) {
+                if (!obj.collected) {
+                    if (playerPos.distanceTo(new THREE.Vector3(obj.mesh.position.x, 0, obj.mesh.position.z)) < 2.5) {
+                        obj.collected = true;
+                        scene.remove(obj.mesh);
+                        gameState.inventory.push(obj.data);
+                        soundEngine.playPickup();
+                        updateInventoryUI();
+                        saveGameState();
+                        break;
+                    }
+                }
+            }
+        }
+
+        function processDeposit(targetType) {
+            if (gameState.inventory.length === 0) {
+                showPopupModal("❌", "Inventori Kosong", "Sila kutip makanan terlebih dahulu sebelum mengasingkan!");
+                return;
+            }
+
+            let depositedCount = 0;
+            let wrongItems = [];
+
+            for (let i = gameState.inventory.length - 1; i >= 0; i--) {
+                const item = gameState.inventory[i];
+                gameState.totalAttempts++;
+
+                if (item.category === targetType) {
+                    gameState.score += 10;
+                    if (item.category === 'healthy') gameState.healthyCollected++;
+                    else gameState.unhealthyCollected++;
+
+                    gameState.inventory.splice(i, 1);
+                    depositedCount++;
+                } else {
+                    wrongItems.push(item);
+                }
+            }
+
+            if (depositedCount > 0) {
+                soundEngine.playSuccess();
+            }
+
+            if (wrongItems.length > 0) {
+                soundEngine.playError();
+                gameState.mistakes += wrongItems.length;
+                const wrongNames = wrongItems.map(i => i.name).join(', ');
+                
+                if (targetType === 'healthy') {
+                    showPopupModal("❌", "Maksud Tidak Tepat", `${wrongNames} ialah makanan tidak sihat. Sila buang ke dalam Tong Sampah!`);
+                } else {
+                    showPopupModal("❌", "Maksud Tidak Tepat", `${wrongNames} ialah makanan sihat. Sila masukkan ke dalam Oven!`);
+                }
+            }
+
+            updateInventoryUI();
+            updateHUDStats();
+            saveGameState();
+
+            if (gameState.healthyCollected + gameState.unhealthyCollected >= FOOD_ITEMS.length) {
+                endGameComplete();
+            }
+        }
+
+        function updateInventoryUI() {
+            const countBadge = document.getElementById('inventory-count-badge');
+            countBadge.innerText = `${gameState.inventory.length}/3`;
+
+            for (let i = 0; i < 3; i++) {
+                const slotEl = document.getElementById(`slot-${i}`);
+                const iconEl = slotEl.querySelector('.slot-icon');
+
+                if (gameState.inventory[i]) {
+                    slotEl.classList.add('has-item');
+                    iconEl.innerText = gameState.inventory[i].icon;
+                    slotEl.title = gameState.inventory[i].name;
+                } else {
+                    slotEl.classList.remove('has-item');
+                    iconEl.innerText = '';
+                    slotEl.title = 'Empty';
+                }
+            }
+        }
+
+        function updateHUDStats() {
+            document.getElementById('hud-score').innerText = gameState.score;
+            document.getElementById('hud-healthy-count').innerText = `${gameState.healthyCollected}/8`;
+            document.getElementById('hud-unhealthy-count').innerText = `${gameState.unhealthyCollected}/8`;
+            
+            const remaining = FOOD_ITEMS.length - (gameState.healthyCollected + gameState.unhealthyCollected);
+            document.getElementById('hud-remaining-count').innerText = remaining;
+        }
+
+        /* ==========================================
+           4. KAWALAN & PERGERAKAN KAMERA
+           ========================================== */
+        function setupMouseAndTouchLook() {
+            const container = document.getElementById('canvas-container');
+
+            container.addEventListener('click', () => {
+                if (gameState.isPlaying && !isMobile) container.requestPointerLock();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!gameState.isPlaying || isMobile) return;
+                if (document.pointerLockElement === container) {
+                    yaw -= e.movementX * 0.002 * gameSettings.mouseSens;
+                    pitch -= e.movementY * 0.002 * gameSettings.mouseSens;
+                    pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+                }
+            });
+
+            let isTouching = false;
+            let lastX = 0, lastY = 0;
+
+            container.addEventListener('pointerdown', (e) => {
+                if (!gameState.isPlaying || !isMobile) return;
+                if (e.target.closest('#mobile-controls') || e.target.closest('.glass-panel')) return;
+
+                if (cameraPointerId !== null) return;
+                cameraPointerId = e.pointerId;
+                isTouching = true;
+                lastX = e.clientX; lastY = e.clientY;
+            });
+
+            container.addEventListener('pointermove', (e) => {
+                if (!isTouching || !gameState.isPlaying || !isMobile || e.pointerId !== cameraPointerId) return;
+                const dx = e.clientX - lastX;
+                const dy = e.clientY - lastY;
+                lastX = e.clientX; lastY = e.clientY;
+
+                yaw -= dx * 0.004 * gameSettings.camSens;
+                pitch -= dy * 0.004 * gameSettings.camSens;
+                pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+            });
+
+            const stopTouch = (e) => {
+                if (e && e.pointerId === cameraPointerId) {
+                    isTouching = false; cameraPointerId = null;
+                }
+            };
+            container.addEventListener('pointerup', stopTouch);
+            container.addEventListener('pointercancel', stopTouch);
+        }
+
+        function bindTouch(elementId, actionFn) {
+            const btn = document.getElementById(elementId);
+            if(!btn) return;
+            
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                actionFn(true);
+            });
+
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                actionFn(false);
+            });
+        }
+
+        function setupControls() {
+            document.addEventListener('keydown', (e) => {
+                if (!gameState.isPlaying || gameState.isPaused) return;
+                switch(e.code) {
+                    case 'KeyW': case 'ArrowUp': moveForward = true; break;
+                    case 'KeyS': case 'ArrowDown': moveBackward = true; break;
+                    case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
+                    case 'KeyD': case 'ArrowRight': moveRight = true; break;
+                    case 'ShiftLeft': case 'ShiftRight': isSprinting = true; break;
+                    case 'Space': triggerJump(); break;
+                    case 'KeyE': interactAction(); break;
+                    case 'KeyQ': dropInventoryItem(); break;
+                    case 'KeyF': toggleFullscreen(); break;
+                    case 'Escape': pauseGame(); break;
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                switch(e.code) {
+                    case 'KeyW': case 'ArrowUp': moveForward = false; break;
+                    case 'KeyS': case 'ArrowDown': moveBackward = false; break;
+                    case 'KeyA': case 'ArrowLeft': moveLeft = false; break;
+                    case 'KeyD': case 'ArrowRight': moveRight = false; break;
+                    case 'ShiftLeft': case 'ShiftRight': isSprinting = false; break;
+                }
+            });
+
+            bindTouch('btn-up', (val) => { moveForward = val; });
+            bindTouch('btn-down', (val) => { moveBackward = val; });
+            bindTouch('btn-left', (val) => { moveLeft = val; });
+            bindTouch('btn-right', (val) => { moveRight = val; });
+
+            const btnAction = document.getElementById('btn-action');
+            if(btnAction) {
+                btnAction.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    interactAction();
+                });
+            }
+
+            const btnAbility = document.getElementById('btn-ability');
+            if(btnAbility) {
+                btnAbility.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    dropInventoryItem();
+                });
+            }
+
+            const btnJump = document.getElementById('btn-jump');
+            if(btnJump) {
+                btnJump.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    triggerJump();
+                });
+            }
+
+            bindTouch('btn-sprint', (val) => { isSprinting = val; });
+        }
+
+        function triggerJump() {
+            if (isGrounded) {
+                velocityY = JUMP_STRENGTH;
+                isGrounded = false;
+                soundEngine.playJump();
+            }
+        }
+
+        /* ==========================================
+           5. GELUNG ANIMASI (MAIN LOOP)
+           ========================================== */
+        function updatePlayerPhysics(delta, time) {
+            if (!gameState.isPlaying || gameState.isPaused) return;
+
+            const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+            euler.x = pitch; euler.y = yaw;
+            camera.quaternion.setFromEuler(euler);
+
+            const currentSpeed = isSprinting ? 10.5 : 6.0;
+
+            const direction = new THREE.Vector3();
+            if (moveForward) direction.z -= 1;
+            if (moveBackward) direction.z += 1;
+            if (moveLeft) direction.x -= 1;
+            if (moveRight) direction.x += 1;
+            direction.normalize();
+
+            if (direction.lengthSq() > 0) {
+                const moveVector = direction.clone().applyEuler(new THREE.Euler(0, yaw, 0));
+                camera.position.x += moveVector.x * currentSpeed * delta;
+                camera.position.z += moveVector.z * currentSpeed * delta;
+            }
+
+            velocityY += GRAVITY * delta;
+            camera.position.y += velocityY * delta;
+
+            if (camera.position.y <= 1.7) {
+                camera.position.y = 1.7;
+                velocityY = 0;
+                isGrounded = true;
+            }
+
+            camera.position.x = Math.max(-22, Math.min(22, camera.position.x));
+            camera.position.z = Math.max(-22, Math.min(22, camera.position.z));
+
+            const playerPos = new THREE.Vector3(camera.position.x, 0, camera.position.z);
+            const distOven = playerPos.distanceTo(new THREE.Vector3(ovenMesh.position.x, 0, ovenMesh.position.z));
+            const distTrash = playerPos.distanceTo(new THREE.Vector3(trashMesh.position.x, 0, trashMesh.position.z));
+            const distSponge = playerPos.distanceTo(new THREE.Vector3(spongebobMesh.position.x, 0, spongebobMesh.position.z));
+            const distSquid = playerPos.distanceTo(new THREE.Vector3(squidwardMesh.position.x, 0, squidwardMesh.position.z));
+
+            let nearObject = false;
+            const prompt = document.getElementById('interaction-prompt');
+
+            if (distSponge < 3.5) {
+                prompt.innerText = isMobile ? "Sentuh X: Bercakap dengan SpongeBob" : "Tekan [E]: Bercakap dengan SpongeBob";
+                prompt.classList.remove('hidden');
+                nearObject = true;
+            } else if (distSquid < 3.5) {
+                prompt.innerText = isMobile ? "Sentuh X: Bercakap dengan Squidward" : "Tekan [E]: Bercakap dengan Squidward";
+                prompt.classList.remove('hidden');
+                nearObject = true;
+            } else if (distOven < 4.5) {
+                prompt.innerText = isMobile ? "Sentuh X: Masukkan ke Oven" : "Tekan [E]: Masukkan ke Oven";
+                prompt.classList.remove('hidden');
+                nearObject = true;
+            } else if (distTrash < 4.5) {
+                prompt.innerText = isMobile ? "Sentuh X: Buang ke Tong Sampah" : "Tekan [E]: Buang ke Tong Sampah";
+                prompt.classList.remove('hidden');
+                nearObject = true;
+            } else if (gameState.inventory.length < 3) {
+                for (let obj of gameState.foodObjects) {
+                    if (!obj.collected && playerPos.distanceTo(new THREE.Vector3(obj.mesh.position.x, 0, obj.mesh.position.z)) < 2.5) {
+                        prompt.innerText = isMobile ? `Sentuh X: Kutip ${obj.data.name}` : `Tekan [E]: Kutip ${obj.data.name}`;
+                        prompt.classList.remove('hidden');
+                        nearObject = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!nearObject) prompt.classList.add('hidden');
+
+            gameState.foodObjects.forEach(f => {
+                if (!f.collected) {
+                    f.mesh.rotation.y += 0.015;
+
+                    const indicator = f.mesh.getObjectByName("itemIndicator");
+                    if (indicator) {
+                        indicator.rotation.y += 0.03;
+                        indicator.position.y = 1.4 + Math.sin(time * 0.005) * 0.1;
+                    }
+                }
+            });
+
+            drawMiniMap();
+            updateNameTags();
+        }
+
+        function drawMiniMap() {
+            const canvas = document.getElementById('minimap-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 85, 85);
+
+            const mapScale = 1.6;
+
+            const ox = 42.5 + ovenMesh.position.x * mapScale;
+            const oz = 42.5 + ovenMesh.position.z * mapScale;
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(ox - 4, oz - 4, 8, 8);
+
+            const tx = 42.5 + trashMesh.position.x * mapScale;
+            const tz = 42.5 + trashMesh.position.z * mapScale;
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(tx - 4, tz - 4, 8, 8);
+
+            const sbx = 42.5 + spongebobMesh.position.x * mapScale;
+            const sbz = 42.5 + spongebobMesh.position.z * mapScale;
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath(); ctx.arc(sbx, sbz, 3, 0, Math.PI * 2); ctx.fill();
+
+            const sqx = 42.5 + squidwardMesh.position.x * mapScale;
+            const sqz = 42.5 + squidwardMesh.position.z * mapScale;
+            ctx.fillStyle = '#38bdf8';
+            ctx.beginPath(); ctx.arc(sqx, sqz, 3, 0, Math.PI * 2); ctx.fill();
+
+            gameState.foodObjects.forEach(f => {
+                if (!f.collected) {
+                    const ix = 42.5 + f.mesh.position.x * mapScale;
+                    const iz = 42.5 + f.mesh.position.z * mapScale;
+                    ctx.fillStyle = f.data.category === 'healthy' ? '#22c55e' : '#eab308';
+                    ctx.beginPath(); ctx.arc(ix, iz, 2.5, 0, Math.PI * 2); ctx.fill();
+                }
+            });
+
+            const px = 42.5 + camera.position.x * mapScale;
+            const pz = 42.5 + camera.position.z * mapScale;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(px, pz, 3.5, 0, Math.PI * 2); ctx.fill();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now();
+            const delta = Math.min((time - prevTime) / 1000, 0.1);
+            prevTime = time;
+
+            updatePlayerPhysics(delta, time);
+            renderer.render(scene, camera);
+        }
+
+        /* ==========================================
+           6. URUSAN PERMAINAN & MENUS
+           ========================================== */
+        function startGame(isResume = false) {
+            soundEngine.init();
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-hud').classList.remove('hidden');
+            document.getElementById('game-hud').classList.add('flex');
+            document.getElementById('crosshair').style.display = isMobile ? 'none' : 'block';
+
+            gameState.isPlaying = true;
+            gameState.isPaused = false;
+
+            soundEngine.updateAudioState();
+
+            if (!isResume) resetGameState();
+            else loadGameState();
+
+            updateHUDStats();
+            updateInventoryUI();
+
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!gameState.isPaused && gameState.isPlaying) {
+                    gameState.timeElapsed++;
+                    const mins = String(Math.floor(gameState.timeElapsed / 60)).padStart(2, '0');
+                    const secs = String(gameState.timeElapsed % 60).padStart(2, '0');
+                    document.getElementById('hud-timer').innerText = `${mins}:${secs}`;
+                }
+            }, 1000);
+        }
+
+        function resetGameState() {
+            gameState.score = 0;
+            gameState.timeElapsed = 0;
+            gameState.healthyCollected = 0;
+            gameState.unhealthyCollected = 0;
+            gameState.mistakes = 0;
+            gameState.totalAttempts = 0;
+            gameState.inventory = [];
+
+            camera.position.set(0, 1.7, 10);
+            yaw = 0; pitch = 0; velocityY = 0;
+            spawnFoodItems();
+        }
+
+        function pauseGame() {
+            gameState.isPaused = true;
+            soundEngine.updateAudioState();
+
+            if (document.exitPointerLock) document.exitPointerLock();
+            document.getElementById('game-hud').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+            document.getElementById('btn-resume').classList.remove('hidden');
+        }
+
+        function endGameComplete() {
+            gameState.isPlaying = false;
+            soundEngine.updateAudioState();
+            soundEngine.playVictorySound();
+
+            if (timerInterval) clearInterval(timerInterval);
+            if (document.exitPointerLock) document.exitPointerLock();
+
+            const accuracy = gameState.totalAttempts > 0 
+                ? Math.round(((gameState.totalAttempts - gameState.mistakes) / gameState.totalAttempts) * 100) 
+                : 100;
+
+            const mins = String(Math.floor(gameState.timeElapsed / 60)).padStart(2, '0');
+            const secs = String(gameState.timeElapsed % 60).padStart(2, '0');
+
+            document.getElementById('res-score').innerText = gameState.score;
+            document.getElementById('res-time').innerText = `${mins}:${secs}`;
+            document.getElementById('res-accuracy').innerText = `${accuracy}%`;
+            document.getElementById('res-mistakes').innerText = gameState.mistakes;
+
+            document.getElementById('modal-gameover').classList.remove('hidden');
+            localStorage.removeItem('healthy_food_game_state');
+        }
+
+        function restartGameComplete() {
+            toggleModal('modal-gameover');
+            startGame(false);
+        }
+
+        function saveGameState() {
+            const data = {
+                score: gameState.score,
+                timeElapsed: gameState.timeElapsed,
+                healthyCollected: gameState.healthyCollected,
+                unhealthyCollected: gameState.unhealthyCollected,
+                mistakes: gameState.mistakes,
+                totalAttempts: gameState.totalAttempts,
+                inventory: gameState.inventory,
+                foodObjects: gameState.foodObjects.map(f => ({ id: f.data.id, collected: f.collected, pos: f.mesh.position }))
+            };
+            localStorage.setItem('healthy_food_game_state', JSON.stringify(data));
+        }
+
+        function loadGameState() {
+            const saved = localStorage.getItem('healthy_food_game_state');
+            if (!saved) return;
+            const data = JSON.parse(saved);
+
+            gameState.score = data.score;
+            gameState.timeElapsed = data.timeElapsed;
+            gameState.healthyCollected = data.healthyCollected;
+            gameState.unhealthyCollected = data.unhealthyCollected;
+            gameState.mistakes = data.mistakes;
+            gameState.totalAttempts = data.totalAttempts;
+            gameState.inventory = data.inventory || [];
+
+            data.foodObjects.forEach(savedItem => {
+                const targetObj = gameState.foodObjects.find(f => f.data.id === savedItem.id);
+                if (targetObj) {
+                    targetObj.collected = savedItem.collected;
+                    targetObj.mesh.position.copy(savedItem.pos);
+                    if (targetObj.collected) scene.remove(targetObj.mesh);
+                }
+            });
+        }
+
+        function saveSettings() {
+            gameSettings.bgmOn = document.getElementById('set-bgm-toggle').checked;
+            gameSettings.musicVol = parseFloat(document.getElementById('set-music-vol').value);
+            gameSettings.sfxVol = parseFloat(document.getElementById('set-sfx-vol').value);
+            gameSettings.mouseSens = parseFloat(document.getElementById('set-mouse-sens').value);
+            gameSettings.camSens = parseFloat(document.getElementById('set-cam-sens').value);
+
+            soundEngine.updateAudioState();
+            localStorage.setItem('healthy_food_settings', JSON.stringify(gameSettings));
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('healthy_food_settings');
+            if (saved) gameSettings = { ...gameSettings, ...JSON.parse(saved) };
+
+            document.getElementById('set-bgm-toggle').checked = gameSettings.bgmOn;
+            document.getElementById('set-music-vol').value = gameSettings.musicVol;
+            document.getElementById('set-sfx-vol').value = gameSettings.sfxVol;
+            document.getElementById('set-mouse-sens').value = gameSettings.mouseSens;
+            document.getElementById('set-cam-sens').value = gameSettings.camSens;
+        }
+
+        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+
+        function showNpcDialog(avatar, name, message) {
+            document.getElementById('npc-avatar').innerText = avatar;
+            document.getElementById('npc-title').innerText = name;
+            document.getElementById('npc-message').innerText = message;
+            document.getElementById('modal-npc-dialog').classList.remove('hidden');
+        }
+
+        function closeNpcDialog() {
+            document.getElementById('modal-npc-dialog').classList.add('hidden');
+        }
+
+        function showPopupModal(icon, title, body) {
+            document.getElementById('popup-icon').innerText = icon;
+            document.getElementById('popup-title').innerText = title;
+            document.getElementById('popup-body').innerText = body;
+            document.getElementById('modal-popup').classList.remove('hidden');
+        }
+
+        function closePopupModal() { document.getElementById('modal-popup').classList.add('hidden'); }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => alert(`Error: ${err.message}`));
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        function onWindowResize() {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.onload = () => {
+            init3D();
+            animate();
+
+            if (localStorage.getItem('healthy_food_game_state')) {
+                document.getElementById('btn-resume').classList.remove('hidden');
+            }
+        };
+    </script>
+</body>
+</html>
