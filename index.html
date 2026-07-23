@@ -221,13 +221,19 @@
 </head>
 <body>
 
+    <!-- BUTANG KEMBALI KE MENU UTAMA (ICA HOME) -->
+    <a href="https://smassrgb.github.io/Menu-utama-pemakanan-seimbang/" 
+       style="position: fixed; top: 12px; left: 12px; z-index: 9999; background: rgba(18, 20, 26, 0.9); border: 1px solid rgba(220, 38, 38, 0.6); color: #ffffff; padding: 8px 14px; border-radius: 6px; font-family: monospace; font-size: 12px; font-weight: bold; text-decoration: none; display: flex; align-items: center; gap: 6px; backdrop-filter: blur(8px); box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+        <span style="color: #dc2626;">◄</span> ICA MENU
+    </a>
+
     <div id="canvas-container"></div>
     <div id="nametag-container" class="absolute inset-0 pointer-events-none z-20"></div>
     <div id="crosshair"></div>
 
     <!-- MAIN MENU OVERLAY -->
     <div id="main-menu" class="absolute inset-0 z-40 flex flex-col justify-between items-center p-6 glass-panel border-none rounded-none">
-        <nav class="w-full flex justify-between items-center max-w-5xl z-10">
+        <nav class="w-full flex justify-between items-center max-w-5xl z-10 pl-28 sm:pl-0">
             <div class="text-lg font-black tracking-wider text-green-400">HEALTHY FOOD SORTING 3D</div>
             <div class="text-xs text-slate-400 font-semibold">Bikini Bottom Edition</div>
         </nav>
@@ -266,7 +272,7 @@
 
     <!-- IN-GAME HUD OVERLAY -->
     <div id="game-hud" class="absolute inset-0 z-30 pointer-events-none hidden flex-col justify-between p-3 sm:p-4">
-        <div class="flex justify-between items-start gap-2">
+        <div class="flex justify-between items-start gap-2 pt-10 sm:pt-0">
             <div class="glass-panel p-2.5 rounded-xl pointer-events-auto border-green-500/30 w-auto min-w-[160px] space-y-1 text-[11px] font-bold">
                 <div class="flex justify-between items-center text-amber-400 gap-3">
                     <span>Markah:</span>
